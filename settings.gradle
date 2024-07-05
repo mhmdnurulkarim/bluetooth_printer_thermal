@@ -1,16 +1,14 @@
 pluginManagement {
     repositories {
-        google {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url='https://jitpack.io'}
+        jcenter() {
             content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
+                includeModule("com.theartofdev.edmodo", "android-image-cropper")
             }
         }
-        mavenCentral()
-        jcenter()
-        maven { url 'https://jitpack.io' }
-        gradlePluginPortal()
     }
 }
 dependencyResolutionManagement {
@@ -18,8 +16,12 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        jcenter()
-        maven { url 'https://jitpack.io' }
+        maven { url='https://jitpack.io'}
+        jcenter() {
+            content {
+                includeModule("com.theartofdev.edmodo", "android-image-cropper")
+            }
+        }
     }
 }
 
