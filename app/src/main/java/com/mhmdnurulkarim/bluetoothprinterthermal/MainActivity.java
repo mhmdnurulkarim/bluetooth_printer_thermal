@@ -2,11 +2,10 @@ package com.mhmdnurulkarim.bluetoothprinterthermal;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
-import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -24,8 +23,16 @@ import com.dantsu.escposprinter.exceptions.EscPosConnectionException;
 import com.dantsu.escposprinter.exceptions.EscPosEncodingException;
 import com.dantsu.escposprinter.exceptions.EscPosParserException;
 import com.dantsu.escposprinter.textparser.PrinterTextParserImg;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -39,21 +46,18 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothConnection selectedDevice;
 
     @Override
-    protected void onCreate(@NonNull Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         Button btnPrint = findViewById(R.id.btnPrint);
 
-        btnPrint.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                checkpermission();
-            }
-        });
+        btnPrint.setOnClickListener(v ->
+                checkPermission()
+        );
     }
 
-    private void checkpermission() {
+    private void checkPermission() {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.BLUETOOTH}, MainActivity.PERMISSION_BLUETOOTH);
         } else if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
@@ -84,8 +88,8 @@ public class MainActivity extends AppCompatActivity {
             final List<String> deviceNames = new ArrayList<>();
             for (BluetoothConnection device : bluetoothDevicesList) {
                 devices.add(device);
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    // Request missing permissions
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, MainActivity.PERMISSION_BLUETOOTH_CONNECT);
                     return;
                 }
                 deviceNames.add(device.getDevice().getName() + "\n" + device.getDevice().getAddress());
@@ -93,12 +97,9 @@ public class MainActivity extends AppCompatActivity {
 
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("Pilih Perangkat Bluetooth")
-                    .setItems(deviceNames.toArray(new CharSequence[0]), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            selectedDevice = devices.get(which);
-                            print();
-                        }
+                    .setItems(deviceNames.toArray(new CharSequence[0]), (dialog, which) -> {
+                        selectedDevice = devices.get(which);
+                        connectAndPrint();
                     })
                     .show();
         } else {
@@ -106,31 +107,50 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void connectAndPrint() {
+        if (selectedDevice != null) {
+            try {
+                selectedDevice.connect();
+                print();
+                selectedDevice.disconnect();
+            } catch (EscPosConnectionException e) {
+                Log.e("APP", "Unable to connect to bluetooth printer", e);
+                Toast.makeText(this, "Unable to connect to bluetooth printer", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     private void print() {
         try {
-//            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-//            if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
-//                Toast.makeText(this, "Bluetooth tidak aktif", Toast.LENGTH_SHORT).show();
-//                return;
-//            }
-//
-//            BluetoothConnection[] bluetoothDevicesList = new BluetoothPrintersConnections().getList();
-//            if (bluetoothDevicesList != null && bluetoothDevicesList.length > 0) {
-//                selectedDevice = bluetoothDevicesList[0]; // Pilih perangkat pertama yang ditemukan, Anda dapat menyesuaikannya
-//            } else {
-//                Toast.makeText(this, "No Bluetooth devices found", Toast.LENGTH_SHORT).show();
-//                return;
-//            }
+            // Contoh JSON data
+            String jsonData = "{\"name\":\"John Doe\",\"email\":\"john@example.com\",\"phone\":\"1234567890\"}";
 
-            // Coba untuk terhubung ke perangkat Bluetooth
+            // Parse JSON ke HashMap
+            Gson gson = new Gson();
+            Type type = new TypeToken<HashMap<String, String>>() {}.getType();
+            HashMap<String, String> dataMap = gson.fromJson(jsonData, type);
+
+            // Generate QR code dari JSON data
+            Bitmap qrCodeBitmap = generateQRCode(jsonData);
+
             if (selectedDevice != null) {
-                selectedDevice.connect();
                 EscPosPrinter printer = new EscPosPrinter(selectedDevice, 203, 48f, 32);
-                printer.printFormattedText("[C]Hello World!\n[C]<img>" + PrinterTextParserImg.bitmapToHexadecimalString(printer, getResources().getDrawableForDensity(R.drawable.ic_launcher_foreground, 100)) + "</img>\n");
-                selectedDevice.disconnect();
+
+                // Print data
+                StringBuilder printText = new StringBuilder();
+                for (String key : dataMap.keySet()) {
+                    printText.append("[L]").append(key).append(": ").append(dataMap.get(key)).append("\n");
+                }
+
+                // Print QR code
+                if (qrCodeBitmap != null) {
+                    String qrCodeHex = PrinterTextParserImg.bitmapToHexadecimalString(printer, qrCodeBitmap);
+                    printText.append("[C]<img>").append(qrCodeHex).append("</img>\n");
+                }
+
+                printer.printFormattedText(printText.toString());
                 Toast.makeText(this, "Pencetakan berhasil", Toast.LENGTH_SHORT).show();
             }
-
         } catch (EscPosConnectionException e) {
             Log.e("APP", "Unable to connect to bluetooth printer", e);
             Toast.makeText(this, "Unable to connect to bluetooth printer", Toast.LENGTH_SHORT).show();
@@ -143,7 +163,46 @@ public class MainActivity extends AppCompatActivity {
         } catch (EscPosParserException e) {
             Log.e("APP", "Parser error", e);
             Toast.makeText(this, "Parser error", Toast.LENGTH_SHORT).show();
+        } catch (WriterException e) {
+            Log.e("APP", "QR code generation error", e);
+            Toast.makeText(this, "QR code generation error", Toast.LENGTH_SHORT).show();
         }
+    }
+
+//    private void print() {
+//        try {
+//            if (selectedDevice != null) {
+//                EscPosPrinter printer = new EscPosPrinter(selectedDevice, 203, 48f, 32);
+//                printer.printFormattedText("[C]Hello World!\n[C]<img>" + PrinterTextParserImg.bitmapToHexadecimalString(printer, getResources().getDrawableForDensity(R.drawable.ic_launcher_foreground, 100)) + "</img>\n");
+//                Toast.makeText(this, "Pencetakan berhasil", Toast.LENGTH_SHORT).show();
+//            }
+//        } catch (EscPosConnectionException e) {
+//            Log.e("APP", "Unable to connect to bluetooth printer", e);
+//            Toast.makeText(this, "Unable to connect to bluetooth printer", Toast.LENGTH_SHORT).show();
+//        } catch (EscPosEncodingException e) {
+//            Log.e("APP", "Encoding error", e);
+//            Toast.makeText(this, "Encoding error", Toast.LENGTH_SHORT).show();
+//        } catch (EscPosBarcodeException e) {
+//            Log.e("APP", "Barcode error", e);
+//            Toast.makeText(this, "Barcode error", Toast.LENGTH_SHORT).show();
+//        } catch (EscPosParserException e) {
+//            Log.e("APP", "Parser error", e);
+//            Toast.makeText(this, "Parser error", Toast.LENGTH_SHORT).show();
+//        }
+//    }
+
+    private Bitmap generateQRCode(String data) throws WriterException {
+        BitMatrix bitMatrix = new MultiFormatWriter().encode(data, BarcodeFormat.QR_CODE, 200, 200);
+        int width = bitMatrix.getWidth();
+        int height = bitMatrix.getHeight();
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                bitmap.setPixel(x, y, bitMatrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF);
+            }
+        }
+        return bitmap;
     }
 
     @Override
