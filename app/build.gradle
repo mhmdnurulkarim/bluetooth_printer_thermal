@@ -1,5 +1,4 @@
 plugins {
-//    alias(libs.plugins.android.application)
     id 'com.android.application'
 }
 
@@ -31,34 +30,21 @@ android {
 
 dependencies {
 
-//    implementation libs.appcompat
-//    implementation libs.material
-//    implementation libs.activity
-//    implementation libs.constraintlayout
-//    implementation libs.recyclerview
-//    testImplementation libs.junit
-//    androidTestImplementation libs.ext.junit
-//    androidTestImplementation libs.espresso.core
-
     implementation 'androidx.appcompat:appcompat:1.4.0'
     implementation 'com.google.android.material:material:1.5.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation 'androidx.recyclerview:recyclerview:1.0.0'
-//    testImplementation 'junit:junit:4.13.2'
-//    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-//    androidTestImplementation 'androidx.test.espresso:espresso‐core:3.3.0'
 
     implementation 'androidx.core:core:1.6.0'
 
     implementation 'androidx.lifecycle:lifecycle-process:2.3.0'
     implementation 'androidx.lifecycle:lifecycle-runtime:2.3.1'
 
-    //Scan & Create QRCode
+    //Create QRCode
     implementation 'com.google.zxing:core:3.4.1'
     implementation 'com.journeyapps:zxing-android-embedded:4.1.0'
     implementation 'com.google.code.gson:gson:2.8.8'
 
-    //Connect Bluetooth
+    //Connect Printer Bluetooth
     implementation 'com.github.DantSu:ESCPOS-ThermalPrinter-Android:3.0.1'
-//    implementation 'com.github.mazenrashed:Printooth:1.2.2'
 }

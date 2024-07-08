@@ -122,12 +122,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void print() {
         try {
-            // Contoh JSON data
+            // Contoh data JSON
             String jsonData = "{\"name\":\"John Doe\",\"email\":\"john@example.com\",\"phone\":\"1234567890\"}";
 
             // Parse JSON ke HashMap
             Gson gson = new Gson();
-            Type type = new TypeToken<HashMap<String, String>>() {}.getType();
+            Type type = new TypeToken<HashMap<String, String>>() {
+            }.getType();
             HashMap<String, String> dataMap = gson.fromJson(jsonData, type);
 
             // Generate QR code dari JSON data
@@ -168,28 +169,6 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "QR code generation error", Toast.LENGTH_SHORT).show();
         }
     }
-
-//    private void print() {
-//        try {
-//            if (selectedDevice != null) {
-//                EscPosPrinter printer = new EscPosPrinter(selectedDevice, 203, 48f, 32);
-//                printer.printFormattedText("[C]Hello World!\n[C]<img>" + PrinterTextParserImg.bitmapToHexadecimalString(printer, getResources().getDrawableForDensity(R.drawable.ic_launcher_foreground, 100)) + "</img>\n");
-//                Toast.makeText(this, "Pencetakan berhasil", Toast.LENGTH_SHORT).show();
-//            }
-//        } catch (EscPosConnectionException e) {
-//            Log.e("APP", "Unable to connect to bluetooth printer", e);
-//            Toast.makeText(this, "Unable to connect to bluetooth printer", Toast.LENGTH_SHORT).show();
-//        } catch (EscPosEncodingException e) {
-//            Log.e("APP", "Encoding error", e);
-//            Toast.makeText(this, "Encoding error", Toast.LENGTH_SHORT).show();
-//        } catch (EscPosBarcodeException e) {
-//            Log.e("APP", "Barcode error", e);
-//            Toast.makeText(this, "Barcode error", Toast.LENGTH_SHORT).show();
-//        } catch (EscPosParserException e) {
-//            Log.e("APP", "Parser error", e);
-//            Toast.makeText(this, "Parser error", Toast.LENGTH_SHORT).show();
-//        }
-//    }
 
     private Bitmap generateQRCode(String data) throws WriterException {
         BitMatrix bitMatrix = new MultiFormatWriter().encode(data, BarcodeFormat.QR_CODE, 200, 200);
